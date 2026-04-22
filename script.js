@@ -1,5 +1,25 @@
 const form = document.querySelector(".lead-form");
 const message = document.querySelector(".form-message");
+const dynamicCityEyebrow = document.querySelector("[data-dynamic-city-eyebrow]");
+const dynamicCityHeading = document.querySelector("[data-dynamic-city-heading]");
+
+const DEFAULT_CITY = "South Florida";
+const LOCATION_CACHE_KEY = "the_fridge_repair_city_v1";
+const LOCATION_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
+
+const supportedCityLookup = {
+  miami: "Miami",
+  "fort lauderdale": "Fort Lauderdale",
+  "ft lauderdale": "Fort Lauderdale",
+  hollywood: "Hollywood",
+  hallandale: "Hallandale Beach",
+  "hallandale beach": "Hallandale Beach",
+  dania: "Dania Beach",
+  "dania beach": "Dania Beach",
+  "boca raton": "Boca Raton",
+  pompano: "Pompano Beach",
+  "pompano beach": "Pompano Beach"
+};
 
 function setFormMessage(text, type = "") {
   if (!message) return;
@@ -22,6 +42,116 @@ function formatPhoneInput(value) {
 function isGoogleAppsScriptEndpoint(url) {
   return /script\.google\.com|script\.googleusercontent\.com/i.test(url);
 }
+
+function normalizeCityName(city) {
+  return String(city || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\./g, "")
+    .replace(/\s+/g, " ");
+}
+
+function getSupportedCity(city) {
+  return supportedCityLookup[normalizeCityName(city)] || "";
+}
+
+function isHomepagePath() {
+  const { pathname } = window.location;
+  return pathname === "/" || pathname === "/index.html" || pathname === "";
+}
+
+function canUseDynamicHomepageCity() {
+  if (!isHomepagePath()) return false;
+  if (!dynamicCityEyebrow || !dynamicCityHeading) return false;
+
+  return (
+    dynamicCityEyebrow.textContent.includes(DEFAULT_CITY) &&
+    dynamicCityHeading.textContent.includes(DEFAULT_CITY)
+  );
+}
+
+function applyHomepageCity(city) {
+  const supportedCity = getSupportedCity(city);
+  if (!supportedCity) return;
+
+  dynamicCityEyebrow.textContent = `${supportedCity} Refrigerator Repair`;
+  dynamicCityHeading.textContent = `${supportedCity} refrigerator repair without the wait.`;
+}
+
+function getCachedHomepageCity() {
+  try {
+    const raw = window.localStorage.getItem(LOCATION_CACHE_KEY);
+    if (!raw) return "";
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.expiresAt < Date.now()) {
+      window.localStorage.removeItem(LOCATION_CACHE_KEY);
+      return "";
+    }
+
+    return getSupportedCity(parsed.city);
+  } catch (error) {
+    return "";
+  }
+}
+
+function setCachedHomepageCity(city) {
+  const supportedCity = getSupportedCity(city);
+  if (!supportedCity) return;
+
+  try {
+    window.localStorage.setItem(
+      LOCATION_CACHE_KEY,
+      JSON.stringify({
+        city: supportedCity,
+        expiresAt: Date.now() + LOCATION_CACHE_TTL_MS
+      })
+    );
+  } catch (error) {
+    // Ignore storage failures and keep the default city in place.
+  }
+}
+
+async function fetchHomepageCityFromIp() {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 1800);
+
+  try {
+    const response = await fetch("https://ipwhois.app/json/", {
+      signal: controller.signal,
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      return "";
+    }
+
+    const data = await response.json();
+    return getSupportedCity(data.city);
+  } catch (error) {
+    return "";
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+async function enhanceHomepageCity() {
+  if (!canUseDynamicHomepageCity()) return;
+
+  const cachedCity = getCachedHomepageCity();
+  if (cachedCity) {
+    applyHomepageCity(cachedCity);
+    return;
+  }
+
+  const detectedCity = await fetchHomepageCityFromIp();
+  if (!detectedCity) return;
+
+  applyHomepageCity(detectedCity);
+  setCachedHomepageCity(detectedCity);
+}
+
+void enhanceHomepageCity();
 
 if (form) {
   const phoneInput = form.querySelector('input[name="phone"]');
