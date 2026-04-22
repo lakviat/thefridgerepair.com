@@ -19,6 +19,10 @@ function formatPhoneInput(value) {
   return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
+function isGoogleAppsScriptEndpoint(url) {
+  return /script\.google\.com|script\.googleusercontent\.com/i.test(url);
+}
+
 if (form) {
   const phoneInput = form.querySelector('input[name="phone"]');
 
@@ -72,10 +76,26 @@ if (form) {
         return;
       }
 
-      const response = await fetch(endpoint, {
+      const requestOptions = {
         method: "POST",
         body: payload
-      });
+      };
+
+      const usesAppsScript = isGoogleAppsScriptEndpoint(endpoint);
+      if (usesAppsScript) {
+        requestOptions.mode = "no-cors";
+      }
+
+      const response = await fetch(endpoint, requestOptions);
+
+      if (usesAppsScript) {
+        form.reset();
+        setFormMessage(
+          "Thank you. Your request was sent and we will be in touch shortly.",
+          "success"
+        );
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("Request failed");

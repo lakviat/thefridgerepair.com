@@ -1,4 +1,5 @@
-const RECIPIENT_EMAIL = "tvmount360@gmail.com";
+const RECIPIENT_EMAIL = "illinoishockey92@gmail.com";
+const BUSINESS_NAME = "The Fridge Repair";
 
 function doPost(e) {
   try {
@@ -16,9 +17,9 @@ function doPost(e) {
       });
     }
 
-    const subject = "New Fridge Repair Lead";
+    const subject = `New Lead | ${BUSINESS_NAME}`;
     const body = [
-      "A new website lead was submitted.",
+      `A new website lead was submitted for ${BUSINESS_NAME}.`,
       "",
       `Name: ${name}`,
       `Phone: ${phone}`,
@@ -43,6 +44,13 @@ function doPost(e) {
       message: error.message || "Unexpected error."
     });
   }
+}
+
+function doGet() {
+  return jsonResponse({
+    ok: true,
+    message: `${BUSINESS_NAME} lead handler is live.`
+  });
 }
 
 function getPayload(e) {
