@@ -9,8 +9,14 @@ const LOCATION_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
 
 const supportedCityLookup = {
   miami: "Miami",
+  "miami beach": "Miami",
+  "north miami": "Miami",
+  "north miami beach": "Miami",
   "fort lauderdale": "Fort Lauderdale",
   "ft lauderdale": "Fort Lauderdale",
+  "ft. lauderdale": "Fort Lauderdale",
+  "fort lauderdale beach": "Fort Lauderdale",
+  "oakland park": "Fort Lauderdale",
   hollywood: "Hollywood",
   hallandale: "Hallandale Beach",
   "hallandale beach": "Hallandale Beach",
@@ -117,7 +123,7 @@ async function fetchHomepageCityFromIp() {
   const timeoutId = window.setTimeout(() => controller.abort(), 1800);
 
   try {
-    const response = await fetch("https://ipwhois.app/json/", {
+    const response = await fetch("https://get.geojs.io/v1/ip/geo.json", {
       signal: controller.signal,
       cache: "no-store"
     });
